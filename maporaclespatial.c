@@ -3128,6 +3128,13 @@ int msOracleSpatialLayerGetItems( layerObj *layer )
     /*Comapre the column name (flk) with geom_column_name and ignore with true*/
     if (strcmp(flk, geom_column_name) != 0) {
       if (rzttype!=OCI_TYPECODE_BLOB) {
+        //Check the buffer for layer's items. Increase it if it is not big enough.
+        if (count_item >= layer->numitems) {
+          if (layer->debug >= 3)
+            msDebug("msOracleSpatialLayerGetItems - expanding buffer for the layer's items. Original item count is %d. Now it is %d", layer->numitems, count_item + 1);
+          layer->items = msSmallRealloc(layer->items, sizeof(char *) * (count_item + 1));
+        }
+
         layer->items[count_item] = (char *)malloc(sizeof(char) * flk_len+1);
         if (layer->items[count_item] == NULL) {
           msSetError( MS_ORACLESPATIALERR, "No memory avaliable to allocate the items buffer", "msOracleSpatialLayerGetItems()" );
