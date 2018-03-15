@@ -1,3 +1,10 @@
+Commit: 5bb7b3f90479e08ff672331d5f47053655eeb103 [5bb7b3f]
+Parents: 9bd402bae9
+Author: Simen Wu <Simen.Wu@bentley.com>
+Date: Friday, December 22, 2017 9:27:45 AM
+Committer: Simen Wu
+For SQLServer layer, use format 'yyyy-mm-dd HH:mm:ss' to convert datetime to string. The original default format 'mon dd yyyy hh:mmAM' is not supported by mapserver.
+====================================
 Commit: 8464e712a22abed6c824255a92a4b57a1faf7d78 [8464e71]
 Parents: 558d283841
 Author: Martin.Icking <martin.icking@bentley.com>
