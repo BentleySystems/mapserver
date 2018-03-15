@@ -1,0 +1,165 @@
+Commit: 8464e712a22abed6c824255a92a4b57a1faf7d78 [8464e71]
+Parents: 558d283841
+Author: Martin.Icking <martin.icking@bentley.com>
+Date: Monday, April 3, 2017 1:02:41 PM
+Committer: Martin.Icking
+Enabled WFS sortby for Oracle plugin, quoted sortby parameter to enable non-capitalized column names
+====================================
+Commit: 558d28384166dae70055c476188932a01be80f12 [558d283]
+Parents: 423399f641
+Author: Martin.Icking <martin.icking@bentley.com>
+Date: Tuesday, March 21, 2017 1:21:15 PM
+Committer: Martin.Icking
+Removed the line that renames the dll referenced by mapscript_csharp.dll. the dll name now is the same as the name of the SWIG modle: csharpmapscript
+====================================
+Commit: 423399f64180187bcf032aae3e8f32b6a93a1578 [423399f]
+Parents: 8be5070e96
+Author: danleydmello <danley.dmello@bentley.com>
+Date: Wednesday, March 1, 2017 10:22:35 AM
+Committer: danleydmello
+DPAPI encryption support in mapserver
+====================================
+Commit: a79453aee5a053b97ec9061136e2e303079dc443 [a79453a]
+Parents: 7887356086
+Author: Martin.Icking <martin.icking@bentley.com>
+Date: Tuesday, January 31, 2017 6:13:34 PM
+Committer: Martin.Icking
+Allow for build path name with spaces
+=====================================
+Commit: 5e1cdfdd6ce5eae68fa47b901c900cd3b945e3ae [5e1cdfd]
+Parents: 15dd83336f
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Sunday, June 19, 2016 7:20:09 AM
+Committer: Martin.Icking
+Commit Date: Monday, January 23, 2017 12:04:08 PM
+SQL server plugin was unable to use SQL selects longer than 10000 characters caused by a static buffer length.
+This was changed to a dynamic buffer
+====================================
+Commit: 15dd83336f9e303e0f6c973dc095313060017b38 [15dd833]
+Parents: e26ed27ba0
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Sunday, June 19, 2016 3:19:09 PM
+Committer: Martin.Icking
+Commit Date: Sunday, January 22, 2017 10:11:38 AM
+enable long SQL select statements by using dynamic SQL buffers
+====================================
+Commit: 0ba4a682c81fb1e0d5fe6aa8f22aba824918420c [0ba4a68]
+Parents: 84a2cbd93f
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Sunday, June 19, 2016 3:10:24 PM
+Committer: Martin.Icking
+Commit Date: Friday, January 20, 2017 8:01:08 PM
+MapServer crashed in situations where the the bracketed select statement in the DATA statement had more than 2000 characters. The crash happened in msSplitData. The code section to dynamically extend the relevant buffer had a bug. This fixes the issue.
+====================================
+Commit: 84a2cbd93f9f3bf2607eaff3875f2bd497aa3748 [84a2cbd]
+Parents: 0b9fc751ac
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Sunday, June 19, 2016 3:05:17 PM
+Committer: Martin.Icking
+Commit Date: Friday, January 20, 2017 7:58:24 PM
+don't treat return value OCI_SUCCESS_WITH_INFO as an error - e.g. in an account expiration case
+====================================
+Commit: 0b9fc751accd511de5154ff08a09e4085149b5cd [0b9fc75]
+Parents: 51e7bc7875
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Sunday, June 19, 2016 3:02:13 PM
+Committer: Martin.Icking
+Commit Date: Friday, January 20, 2017 7:58:03 PM
+add support for gtype 2007 in a compound situation
+====================================
+Commit: 51e7bc78755a9658f8bdcc0fb927619464c9a04c [51e7bc7]
+Parents: d1212b55b9
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Sunday, June 19, 2016 7:26:57 AM
+Committer: Martin.Icking
+Commit Date: Friday, January 20, 2017 7:31:07 PM
+SQL server plugin didn't correctly mask the password in an error message
+====================================
+Commit: d1212b55b959e5a8c6b7b7960a0660abf4b306a2 [d1212b5]
+Parents: 7d7bbc9f23
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Sunday, June 19, 2016 6:47:23 AM
+Committer: Martin.Icking
+Commit Date: Friday, January 20, 2017 7:29:30 PM
+SQL server plugin does not render all geometries if there are rows with NULL geometries
+====================================
+Commit: 7d7bbc9f23a3c6b6946d70aa64acbf6ad7edb53c [7d7bbc9]
+Parents: 6c888fd148
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Saturday, June 18, 2016 5:37:37 PM
+Committer: Martin.Icking
+Commit Date: Friday, January 20, 2017 7:28:18 PM
+Bug : Mapserver (in FCGI mode) only reports valid error message for the first request, then it reports Internal error 500
+
+Step to reproduce:
+1. Introduce any error in a .map file
+2. Make a request to the map file: http://<server>/<path>/mapserv.exe?MAP=<mapfileP_Path>
+3. Should see a meaningfull error message.
+
+4. Replay the same request, now you see a internal error 500.
+====================================
+Commit: 6c888fd148bc0bd65bb405371e6d5ee28ba5c580 [6c888fd]
+Parents: ea90efe15f
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Saturday, June 18, 2016 8:50:51 AM
+Committer: Martin.Icking
+Commit Date: Friday, January 20, 2017 7:26:41 PM
+this fix allows to have an out-of-source build on any location - previously it was assumed that the mapscript csharp sources had a fixed path relative to the build
+====================================
+Commit: ea90efe15f60f462f16d977e184cb9e9eb292274 [ea90efe]
+Parents: 3432a4e304
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Saturday, June 18, 2016 6:21:00 AM
+Committer: Martin.Icking
+Commit Date: Friday, January 20, 2017 7:15:32 PM
+Enable evaluation of primary key if table name is given in the format schema.tablename
+
+SQL server plugin allows to omit "USING UNIQUE" by automatically
+retrieving the name of the table's primary key. This did only work if
+the table was just mentioned through it name. The fix allows you to
+specify the table name as
+[SERVERNAME].[DATABASENAME].[SCHEMANAME].[TABLENAME]
+====================================
+ 
+Commit: 3432a4e3043d10bc53de246b56935d80fb26a48a [3432a4e]
+Parents: a8cb6d2828
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Sunday, March 20, 2016 7:20:54 AM
+Committer: Martin.Icking
+Commit Date: Friday, January 20, 2017 7:14:03 PM
+Included mapows.h to have correct prototype for msOWSLookupMetadata
+
+mapserver crashed on windows with an Oracle layer (using Oracle plugin)
+and "gml_types" "auto"
+This was caused by using msOWSLookupMetadata without a prototype
+Missing prototype gave following warning during a windows build:
+Warning 13 warning C4013: 'msOWSLookupMetadata' undefined; assuming
+extern returning int
+====================================
+Commit: a8cb6d282809959f6188e9f377dc0a7a07be5c97 [a8cb6d2]
+Parents: 949c8f95b2
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Friday, March 18, 2016 7:01:35 PM
+Committer: Martin.Icking
+Commit Date: Friday, January 20, 2017 7:11:46 PM
+Allow using double quoted aliases for Oracle column aliases
+
+Adding double quotes to the columns of the mapserver generated outer
+query safely allows using double quoted column aliases in the data
+statement
+====================================
+Commit: 949c8f95b23ca105bb87c2725ffe39a361d5c288 [949c8f9]
+Parents: b4bc015a9f
+Author: Martin Icking <martin.icking@bentley.com>
+Date: Friday, March 18, 2016 6:58:51 PM
+Committer: Martin.Icking
+Commit Date: Friday, January 20, 2017 7:10:33 PM
+Removed bug that caused MapServer only to use the Oracle TranslateFilter method at the first call e.g. in an FCGI environment
+
+unlike all other vtable assignments the
+msOracleSpatialLayerTranslateFilter was set to layer->vtable and not to
+vtable
+
+
+
+
