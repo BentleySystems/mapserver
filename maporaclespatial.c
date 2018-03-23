@@ -214,8 +214,8 @@ static int osGetOrdinates(msOracleSpatialDataHandler *dthand, msOracleSpatialHan
 static int osCheck2DGtype(int pIntGtype);
 static int osCheck3DGtype(int pIntGtype);
 static int osCheck4DGtype(int pIntGtype);
-static int exorSetUser(msOracleSpatialHandler *hand, msOracleSpatialStatement *sthand, char *username);
-static int exorResetUser(msOracleSpatialHandler *hand, msOracleSpatialStatement *sthand);
+static int setDBRole(msOracleSpatialHandler *hand, msOracleSpatialStatement *sthand, char *username);
+static int resetDBRole(msOracleSpatialHandler *hand, msOracleSpatialStatement *sthand);
 
 /******************************************************************************
  *                          Local Helper Functions                            *
@@ -1721,11 +1721,11 @@ static void msOCICloseConnection( void *hand )
 }
 
 /*
- * This function internally calls SET_USER stored procedure to set the role on Exor database. 
+ * This function internally calls SET_USER stored procedure to set the role to access database. 
  * After the stored procedure is called, the following db queries only return records
  * that the role has permission to access.
  */
-static int exorSetUser( msOracleSpatialHandler *hand, msOracleSpatialStatement *sthand, char *username )
+static int setDBRole( msOracleSpatialHandler *hand, msOracleSpatialStatement *sthand, char *username )
 {
   int success = 0;
   OCIBind *bnd = NULL;
@@ -1737,12 +1737,12 @@ static int exorSetUser( msOracleSpatialHandler *hand, msOracleSpatialStatement *
 }
 
 /*
-* Call CLEAR_USER stored procedure to unset the role on Exor database.
-* Remember to call this after each call of exorSetUser to reset the db role environment.
+* Call CLEAR_USER stored procedure to unset the role on database.
+* Remember to call this after each call of setDBRole to reset the db role environment.
 * Since this is a cleanup function, in order to save caller from verbose error handling,
 * it handles db error internally.
 */
-static int exorResetUser( msOracleSpatialHandler *hand, msOracleSpatialStatement *sthand )
+static int resetDBRole( msOracleSpatialHandler *hand, msOracleSpatialStatement *sthand )
 {
   int success = 0;
   char query_str[] = "BEGIN WEB_USER_INFO.CLEAR_USER(); END;";
@@ -1750,11 +1750,11 @@ static int exorResetUser( msOracleSpatialHandler *hand, msOracleSpatialStatement
     && TRY(hand, OCIStmtExecute(hand->svchp, sthand->stmthp, hand->errhp, (ub4)QUERY_SIZE, (ub4)0, (OCISnapshot *)NULL, (OCISnapshot *)NULL, (ub4)OCI_DEFAULT));
   if (!success) {
       msDebug("Error: %s . "
-          "Failed to call CLEAR_USER on EXOR database."
-          "exorResetUser()\n", hand->last_oci_error);
+          "Failed to call CLEAR_USER on database."
+          "resetDBRole()\n", hand->last_oci_error);
       msSetError(MS_ORACLESPATIALERR,
           "Check the server logs",
-          "exorResetUser()");
+          "resetDBRole()");
   }
   return success;
 }
@@ -2143,18 +2143,18 @@ int msOracleSpatialLayerWhichShapes( layerObj *layer, rectObj rect, int isQuery)
   if (layer->debug)
     msDebug("msOracleSpatialLayerWhichShapes. Using this Sql to retrieve the data: %s\n", query_str);
 
-  /* db_role is a custom metadata. When this is set, that means we should use this role to access Exor db. */
+  /* db_role is a custom metadata. When this is set, that means we should use this role to access db. */
   char *db_role = msLookupHashTable(&layer->metadata, "db_role");
   if (db_role) {
     if (layer->debug >= 3)
-      msDebug("msOracleSpatialLayerWhichShapes. Call Set_User with Exor user: %s.\n", db_role);
-    success = exorSetUser(hand, sthand, db_role);
+      msDebug("msOracleSpatialLayerWhichShapes. Call Set_User with user: %s.\n", db_role);
+    success = setDBRole(hand, sthand, db_role);
 
     /* If calling on Set_User fails, clean up and return. */
     if (!success) {
       /* Log message. */
       msDebug("Error: %s . "
-          "Failed to call Set_User() on Exor database."
+          "Failed to call Set_User() on database."
           "msOracleSpatialLayerWhichShapes()\n", hand->last_oci_error);
       msSetError(MS_ORACLESPATIALERR,
           "Check your data statement and server logs",
@@ -2288,9 +2288,9 @@ int msOracleSpatialLayerWhichShapes( layerObj *layer, rectObj rect, int isQuery)
     if (indexfield) free(indexfield);
     free(table_name);
     free(query_str);
-    /* Reset exor user when necessary */
+    /* Reset db role when necessary */
     if (db_role)
-      exorResetUser(hand, sthand);
+      resetDBRole(hand, sthand);
     return MS_FAILURE;
   }
 
@@ -2305,9 +2305,9 @@ int msOracleSpatialLayerWhichShapes( layerObj *layer, rectObj rect, int isQuery)
   if (indexfield) free(indexfield);
   free(table_name);
   free(query_str);
-  /* Reset exor user when necessary */
+  /* Reset db role when necessary */
   if (db_role)
-    exorResetUser(hand, sthand);
+    resetDBRole(hand, sthand);
 
   return MS_SUCCESS;
 }
