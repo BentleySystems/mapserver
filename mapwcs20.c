@@ -741,6 +741,24 @@ xmlNodePtr msLibXml2GetFirstChildNs(xmlNodePtr parent, const char *name, xmlNsPt
   }
   return NULL;
 }
+
+/*
+  Utility function to get the first child of a node with a given node name
+  */
+
+xmlNodePtr msLibXml2GetFirstChildElement(xmlNodePtr parent) {
+  xmlNodePtr node;
+  if (!parent) {
+    return NULL;
+  }
+
+  XML_FOREACH_CHILD(parent, node) {
+    if (node->type == XML_ELEMENT_NODE) {
+      return node;
+    }
+  }
+  return NULL;
+}
 #endif /* defined(USE_LIBXML2) */
 
 /************************************************************************/
@@ -760,7 +778,6 @@ static int msWCSParseRequest20_XMLGetCapabilities(
     else if (EQUAL((char *)child->name, "AcceptVersions")) {
       xmlNodePtr versionNode = NULL;
       XML_FOREACH_CHILD(child, versionNode) {
-        /* for(child = firstChild->children; child != NULL; child = child->next) */
         XML_LOOP_IGNORE_COMMENT_OR_TEXT(versionNode);
         XML_ASSERT_NODE_NAME(versionNode, "Version");
 
@@ -1022,6 +1039,7 @@ static int msWCSParseRequest20_XMLGetCoverage(
       xmlNodePtr bandNode = NULL;
       XML_FOREACH_CHILD(child, bandNode) {
         char *content = NULL;
+        XML_LOOP_IGNORE_COMMENT_OR_TEXT(bandNode);
         XML_ASSERT_NODE_NAME(bandNode, "band");
 
         content = (char *)xmlNodeGetContent(bandNode);
@@ -1034,72 +1052,20 @@ static int msWCSParseRequest20_XMLGetCoverage(
       XML_FOREACH_CHILD(child, extensionNode) {
         XML_LOOP_IGNORE_COMMENT_OR_TEXT(extensionNode);
 
-        if (EQUAL((char *) extensionNode->name, "ScaleByFactor")) {
-          xmlNodePtr scaleFactorNode = extensionNode->children;
-          char *content;
-          if (!scaleFactorNode || !EQUAL((char *)scaleFactorNode->name, "scaleFactor")) {
-            msSetError(MS_WCSERR, "Missing 'scaleFactor' node.",
-                       "msWCSParseRequest20_XMLGetCoverage()");
-            return MS_FAILURE;
-          }
-          content = (char *)xmlNodeGetContent(scaleFactorNode);
-          if (msStringParseDouble(content, &(params->scale)) != MS_SUCCESS
-              || params->scale < 0.0) {
-            msSetError(MS_WCSERR, "Invalid scaleFactor '%s'.",
-                       "msWCSParseRequest20_XMLGetCoverage()", content);
-            xmlFree(content);
-            return MS_FAILURE;
-          }
-          xmlFree(content);
-        }
+        if (EQUAL((char *) extensionNode->name, "Scaling")) {
+          xmlNodePtr scaleMethodNode = msLibXml2GetFirstChildElement(extensionNode);
 
-        else if (EQUAL((char *) extensionNode->name, "ScaleAxesByFactor")) {
-          xmlNodePtr scaleAxisNode, axisNode, scaleFactorNode;
-          char *axisName, *content;
-          wcs20AxisObjPtr axis;
-
-          XML_FOREACH_CHILD(extensionNode, scaleAxisNode) {
-            XML_LOOP_IGNORE_COMMENT_OR_TEXT(scaleAxisNode);
-
-            if (!EQUAL((char *)scaleAxisNode->name, "ScaleAxis")) {
-              msSetError(MS_WCSERR, "Invalid ScaleAxesByFactor.",
+          if (EQUAL((char *) scaleMethodNode->name, "ScaleByFactor")) {
+            xmlNodePtr scaleFactorNode = msLibXml2GetFirstChildElement(scaleMethodNode);
+            char *content;
+            if (!scaleFactorNode || !EQUAL((char *)scaleFactorNode->name, "scaleFactor")) {
+              msSetError(MS_WCSERR, "Missing 'scaleFactor' node.",
                          "msWCSParseRequest20_XMLGetCoverage()");
               return MS_FAILURE;
             }
-
-            /* axis */
-            if (NULL == (axisNode = msLibXml2GetFirstChild(scaleAxisNode, "axis"))) {
-              msSetError(MS_WCSERR, "Missing axis node",
-                         "msWCSParseRequest20_XMLGetCoverage()");
-              return MS_FAILURE;
-            }
-            axisName = (char *)xmlNodeGetContent(axisNode);
-            if(NULL == (axis = msWCSFindAxis20(params, axisName))) {
-              if(NULL == (axis = msWCSCreateAxisObj20())) {
-                xmlFree(axisName);
-                return MS_FAILURE;
-              }
-              axis->name = msStrdup(axisName);
-              msWCSInsertAxisObj20(params, axis);
-            }
-            xmlFree(axisName);
-
-            if (axis->scale != MS_WCS20_UNBOUNDED) {
-              msSetError(MS_WCSERR, "scaleFactor was already set for axis '%s'.",
-                         "msWCSParseRequest20_XMLGetCoverage()", axis->name);
-              return MS_FAILURE;
-            }
-
-            /* scaleFactor */
-            if (NULL == (scaleFactorNode = msLibXml2GetFirstChild(scaleAxisNode, "scaleFactor"))) {
-              msSetError(MS_WCSERR, "Missing scaleFactor node",
-                         "msWCSParseRequest20_XMLGetCoverage()");
-              return MS_FAILURE;
-            }
-
             content = (char *)xmlNodeGetContent(scaleFactorNode);
-            if (msStringParseDouble(content, &(axis->scale)) != MS_SUCCESS
-                || axis->scale < 0.0) {
+            if (msStringParseDouble(content, &(params->scale)) != MS_SUCCESS
+                || params->scale < 0.0) {
               msSetError(MS_WCSERR, "Invalid scaleFactor '%s'.",
                          "msWCSParseRequest20_XMLGetCoverage()", content);
               xmlFree(content);
@@ -1107,141 +1073,197 @@ static int msWCSParseRequest20_XMLGetCoverage(
             }
             xmlFree(content);
           }
-        }
 
-        else if (EQUAL((char *) extensionNode->name, "ScaleToSize")) {
-          xmlNodePtr scaleAxisNode, axisNode, targetSizeNode;
-          char *axisName, *content;
-          wcs20AxisObjPtr axis;
+          else if (EQUAL((char *) scaleMethodNode->name, "ScaleAxesByFactor")) {
+            xmlNodePtr scaleAxisNode, axisNode, scaleFactorNode;
+            char *axisName, *content;
+            wcs20AxisObjPtr axis;
 
-          XML_FOREACH_CHILD(extensionNode, scaleAxisNode) {
-            XML_LOOP_IGNORE_COMMENT_OR_TEXT(scaleAxisNode);
+            XML_FOREACH_CHILD(scaleMethodNode, scaleAxisNode) {
+              XML_LOOP_IGNORE_COMMENT_OR_TEXT(scaleAxisNode);
 
-            if (!EQUAL((char *)scaleAxisNode->name, "targetAxisSize")) {
-              msSetError(MS_WCSERR, "Invalid ScaleToSize.",
-                         "msWCSParseRequest20_XMLGetCoverage()");
-              return MS_FAILURE;
-            }
-
-            /* axis */
-            if (NULL == (axisNode = msLibXml2GetFirstChild(scaleAxisNode, "axis"))) {
-              msSetError(MS_WCSERR, "Missing axis node",
-                         "msWCSParseRequest20_XMLGetCoverage()");
-              return MS_FAILURE;
-            }
-            axisName = (char *)xmlNodeGetContent(axisNode);
-            if(NULL == (axis = msWCSFindAxis20(params, axisName))) {
-              if(NULL == (axis = msWCSCreateAxisObj20())) {
-                xmlFree(axisName);
+              if (!EQUAL((char *)scaleAxisNode->name, "ScaleAxis")) {
+                msSetError(MS_WCSERR, "Invalid ScaleAxesByFactor.",
+                           "msWCSParseRequest20_XMLGetCoverage()");
                 return MS_FAILURE;
               }
-              axis->name = msStrdup(axisName);
-              msWCSInsertAxisObj20(params, axis);
-            }
-            xmlFree(axisName);
 
-            if (axis->size != 0) {
-              msSetError(MS_WCSERR, "targetSize was already set for axis '%s'.",
-                         "msWCSParseRequest20_XMLGetCoverage()", axis->name);
-              return MS_FAILURE;
-            }
+              /* axis */
+              if (NULL == (axisNode = msLibXml2GetFirstChild(scaleAxisNode, "axis"))) {
+                msSetError(MS_WCSERR, "Missing axis node",
+                           "msWCSParseRequest20_XMLGetCoverage()");
+                return MS_FAILURE;
+              }
+              axisName = (char *)xmlNodeGetContent(axisNode);
+              if(NULL == (axis = msWCSFindAxis20(params, axisName))) {
+                if(NULL == (axis = msWCSCreateAxisObj20())) {
+                  xmlFree(axisName);
+                  return MS_FAILURE;
+                }
+                axis->name = msStrdup(axisName);
+                msWCSInsertAxisObj20(params, axis);
+              }
+              xmlFree(axisName);
 
-            /* targetSize */
-            if (NULL == (targetSizeNode = msLibXml2GetFirstChild(scaleAxisNode, "targetSize"))) {
-              msSetError(MS_WCSERR, "Missing targetSize node",
-                         "msWCSParseRequest20_XMLGetCoverage()");
-              return MS_FAILURE;
-            }
+              if (axis->scale != MS_WCS20_UNBOUNDED) {
+                msSetError(MS_WCSERR, "scaleFactor was already set for axis '%s'.",
+                           "msWCSParseRequest20_XMLGetCoverage()", axis->name);
+                return MS_FAILURE;
+              }
 
-            content = (char *)xmlNodeGetContent(targetSizeNode);
-            if (msStringParseInteger(content, &(axis->size)) != MS_SUCCESS
-                || axis->size <= 0) {
-              msSetError(MS_WCSERR, "Invalid targetSize '%s'.",
-                         "msWCSParseRequest20_XMLGetCoverage()", content);
+              /* scaleFactor */
+              if (NULL == (scaleFactorNode = msLibXml2GetFirstChild(scaleAxisNode, "scaleFactor"))) {
+                msSetError(MS_WCSERR, "Missing scaleFactor node",
+                           "msWCSParseRequest20_XMLGetCoverage()");
+                return MS_FAILURE;
+              }
+
+              content = (char *)xmlNodeGetContent(scaleFactorNode);
+              if (msStringParseDouble(content, &(axis->scale)) != MS_SUCCESS
+                  || axis->scale < 0.0) {
+                msSetError(MS_WCSERR, "Invalid scaleFactor '%s'.",
+                           "msWCSParseRequest20_XMLGetCoverage()", content);
+                xmlFree(content);
+                return MS_FAILURE;
+              }
               xmlFree(content);
-              return MS_FAILURE;
             }
-            xmlFree(content);
           }
-        }
 
-        else if (EQUAL((char *) extensionNode->name, "ScaleToExtent")) {
-          xmlNodePtr scaleAxisNode, axisNode, lowNode, highNode;
-          char *axisName, *content;
-          wcs20AxisObjPtr axis;
-          int low, high;
+          else if (EQUAL((char *) scaleMethodNode->name, "ScaleToSize")) {
+            xmlNodePtr scaleAxisNode, axisNode, targetSizeNode;
+            char *axisName, *content;
+            wcs20AxisObjPtr axis;
 
-          XML_FOREACH_CHILD(extensionNode, scaleAxisNode) {
-            XML_LOOP_IGNORE_COMMENT_OR_TEXT(scaleAxisNode);
+            XML_FOREACH_CHILD(scaleMethodNode, scaleAxisNode) {
+              XML_LOOP_IGNORE_COMMENT_OR_TEXT(scaleAxisNode);
 
-            if (!EQUAL((char *)scaleAxisNode->name, "TargetAxisExtent")) {
-              msSetError(MS_WCSERR, "Invalid ScaleToExtent.",
-                         "msWCSParseRequest20_XMLGetCoverage()");
-              return MS_FAILURE;
-            }
-
-            /* axis */
-            if (NULL == (axisNode = msLibXml2GetFirstChild(scaleAxisNode, "axis"))) {
-              msSetError(MS_WCSERR, "Missing axis node",
-                         "msWCSParseRequest20_XMLGetCoverage()");
-              return MS_FAILURE;
-            }
-            axisName = (char *)xmlNodeGetContent(axisNode);
-            if(NULL == (axis = msWCSFindAxis20(params, axisName))) {
-              if(NULL == (axis = msWCSCreateAxisObj20())) {
-                xmlFree(axisName);
+              if (!EQUAL((char *)scaleAxisNode->name, "TargetAxisSize")) {
+                msSetError(MS_WCSERR, "Invalid ScaleToSize.",
+                           "msWCSParseRequest20_XMLGetCoverage()");
                 return MS_FAILURE;
               }
-              axis->name = msStrdup(axisName);
-              msWCSInsertAxisObj20(params, axis);
-            }
-            xmlFree(axisName);
 
-            if (axis->size != 0) {
-              msSetError(MS_WCSERR, "targetSize was already set for axis '%s'.",
-                         "msWCSParseRequest20_XMLGetCoverage()", axis->name);
-              return MS_FAILURE;
-            }
+              /* axis */
+              if (NULL == (axisNode = msLibXml2GetFirstChild(scaleAxisNode, "axis"))) {
+                msSetError(MS_WCSERR, "Missing axis node",
+                           "msWCSParseRequest20_XMLGetCoverage()");
+                return MS_FAILURE;
+              }
+              axisName = (char *)xmlNodeGetContent(axisNode);
+              if(NULL == (axis = msWCSFindAxis20(params, axisName))) {
+                if(NULL == (axis = msWCSCreateAxisObj20())) {
+                  xmlFree(axisName);
+                  return MS_FAILURE;
+                }
+                axis->name = msStrdup(axisName);
+                msWCSInsertAxisObj20(params, axis);
+              }
+              xmlFree(axisName);
 
-            /* targetSize */
-            if (NULL == (lowNode = msLibXml2GetFirstChild(scaleAxisNode, "low"))) {
-              msSetError(MS_WCSERR, "Missing low node",
-                         "msWCSParseRequest20_XMLGetCoverage()");
-              return MS_FAILURE;
-            }
+              if (axis->size != 0) {
+                msSetError(MS_WCSERR, "targetSize was already set for axis '%s'.",
+                           "msWCSParseRequest20_XMLGetCoverage()", axis->name);
+                return MS_FAILURE;
+              }
 
-            if (NULL == (highNode = msLibXml2GetFirstChild(scaleAxisNode, "high"))) {
-              msSetError(MS_WCSERR, "Missing high node",
-                         "msWCSParseRequest20_XMLGetCoverage()");
-              return MS_FAILURE;
-            }
+              /* targetSize */
+              if (NULL == (targetSizeNode = msLibXml2GetFirstChild(scaleAxisNode, "targetSize"))) {
+                msSetError(MS_WCSERR, "Missing targetSize node",
+                           "msWCSParseRequest20_XMLGetCoverage()");
+                return MS_FAILURE;
+              }
 
-            content = (char *)xmlNodeGetContent(lowNode);
-            if (msStringParseInteger(content, &low) != MS_SUCCESS) {
-              msSetError(MS_WCSERR, "Invalid low value '%s'.",
-                         "msWCSParseRequest20_XMLGetCoverage()", content);
+              content = (char *)xmlNodeGetContent(targetSizeNode);
+              if (msStringParseInteger(content, &(axis->size)) != MS_SUCCESS
+                  || axis->size <= 0) {
+                msSetError(MS_WCSERR, "Invalid targetSize '%s'.",
+                           "msWCSParseRequest20_XMLGetCoverage()", content);
+                xmlFree(content);
+                return MS_FAILURE;
+              }
               xmlFree(content);
-              return MS_FAILURE;
             }
-            xmlFree(content);
+          }
 
+          else if (EQUAL((char *) scaleMethodNode->name, "ScaleToExtent")) {
+            xmlNodePtr scaleAxisNode, axisNode, lowNode, highNode;
+            char *axisName, *content;
+            wcs20AxisObjPtr axis;
+            int low, high;
 
-            content = (char *)xmlNodeGetContent(highNode);
-            if (msStringParseInteger(content, &high) != MS_SUCCESS) {
-              msSetError(MS_WCSERR, "Invalid high value '%s'.",
-                         "msWCSParseRequest20_XMLGetCoverage()", content);
+            XML_FOREACH_CHILD(scaleMethodNode, scaleAxisNode) {
+              XML_LOOP_IGNORE_COMMENT_OR_TEXT(scaleAxisNode);
+
+              if (!EQUAL((char *)scaleAxisNode->name, "TargetAxisExtent")) {
+                msSetError(MS_WCSERR, "Invalid ScaleToExtent.",
+                           "msWCSParseRequest20_XMLGetCoverage()");
+                return MS_FAILURE;
+              }
+
+              /* axis */
+              if (NULL == (axisNode = msLibXml2GetFirstChild(scaleAxisNode, "axis"))) {
+                msSetError(MS_WCSERR, "Missing axis node",
+                           "msWCSParseRequest20_XMLGetCoverage()");
+                return MS_FAILURE;
+              }
+              axisName = (char *)xmlNodeGetContent(axisNode);
+              if(NULL == (axis = msWCSFindAxis20(params, axisName))) {
+                if(NULL == (axis = msWCSCreateAxisObj20())) {
+                  xmlFree(axisName);
+                  return MS_FAILURE;
+                }
+                axis->name = msStrdup(axisName);
+                msWCSInsertAxisObj20(params, axis);
+              }
+              xmlFree(axisName);
+
+              if (axis->size != 0) {
+                msSetError(MS_WCSERR, "targetSize was already set for axis '%s'.",
+                           "msWCSParseRequest20_XMLGetCoverage()", axis->name);
+                return MS_FAILURE;
+              }
+
+              /* targetSize */
+              if (NULL == (lowNode = msLibXml2GetFirstChild(scaleAxisNode, "low"))) {
+                msSetError(MS_WCSERR, "Missing low node",
+                           "msWCSParseRequest20_XMLGetCoverage()");
+                return MS_FAILURE;
+              }
+
+              if (NULL == (highNode = msLibXml2GetFirstChild(scaleAxisNode, "high"))) {
+                msSetError(MS_WCSERR, "Missing high node",
+                           "msWCSParseRequest20_XMLGetCoverage()");
+                return MS_FAILURE;
+              }
+
+              content = (char *)xmlNodeGetContent(lowNode);
+              if (msStringParseInteger(content, &low) != MS_SUCCESS) {
+                msSetError(MS_WCSERR, "Invalid low value '%s'.",
+                           "msWCSParseRequest20_XMLGetCoverage()", content);
+                xmlFree(content);
+                return MS_FAILURE;
+              }
               xmlFree(content);
-              return MS_FAILURE;
-            }
-            xmlFree(content);
 
-            if (high <= low) {
-              msSetError(MS_WCSERR, "Invalid extent, high is lower than low.",
-                         "msWCSParseRequest20_XMLGetCoverage()");
-              return MS_FAILURE;
-            }
 
-            axis->size = high - low;
+              content = (char *)xmlNodeGetContent(highNode);
+              if (msStringParseInteger(content, &high) != MS_SUCCESS) {
+                msSetError(MS_WCSERR, "Invalid high value '%s'.",
+                           "msWCSParseRequest20_XMLGetCoverage()", content);
+                xmlFree(content);
+                return MS_FAILURE;
+              }
+              xmlFree(content);
+
+              if (high <= low) {
+                msSetError(MS_WCSERR, "Invalid extent, high is lower than low.",
+                           "msWCSParseRequest20_XMLGetCoverage()");
+                return MS_FAILURE;
+              }
+
+              axis->size = high - low;
+            }
           }
         }
 
@@ -1250,39 +1272,39 @@ static int msWCSParseRequest20_XMLGetCoverage(
           xmlNodePtr rangeItemNode = NULL;
 
           XML_FOREACH_CHILD(extensionNode, rangeItemNode) {
-
+            xmlNodePtr rangeItemNodeChild = msLibXml2GetFirstChildElement(rangeItemNode);
             XML_LOOP_IGNORE_COMMENT_OR_TEXT(rangeItemNode);
 
             XML_ASSERT_NODE_NAME(rangeItemNode, "RangeItem");
 
-            if (!rangeItemNode->children) {
+            if (!rangeItemNodeChild) {
               msSetError(MS_WCSERR, "Missing RangeComponent or RangeInterval.",
                                     "msWCSParseRequest20_XMLGetCoverage()");
               return MS_FAILURE;
             }
-            else if (EQUAL((char *) rangeItemNode->children->name, "RangeComponent")) {
-              char *content = (char *)xmlNodeGetContent(rangeItemNode->children);
+            else if (EQUAL((char *) rangeItemNodeChild->name, "RangeComponent")) {
+              char *content = (char *)xmlNodeGetContent(rangeItemNodeChild);
               params->range_subset =
                 CSLAddString(params->range_subset, content);
               xmlFree(content);
             }
-            else if (EQUAL((char *) rangeItemNode->children->name, "RangeInterval")) {
-              xmlNodePtr intervalNode = rangeItemNode->children;
+            else if (EQUAL((char *) rangeItemNodeChild->name, "RangeInterval")) {
+              xmlNodePtr intervalNode = rangeItemNodeChild;
+              xmlNodePtr startComponentNode = msLibXml2GetFirstChild(intervalNode, "startComponent");
+              xmlNodePtr endComponentNode = msLibXml2GetFirstChild(intervalNode, "endComponent");
               char *start;
               char *stop;
               char *value;
               int length;
 
-              if (!intervalNode->children || !intervalNode->children->next
-                  || !EQUAL((char *) intervalNode->children->name, "startComponent")
-                  || !EQUAL((char *) intervalNode->children->next->name, "endComponent")) {
+              if (!startComponentNode || !endComponentNode) {
                 msSetError(MS_WCSERR, "Wrong RangeInterval.",
                                       "msWCSParseRequest20_XMLGetCoverage()");
                 return MS_FAILURE;
               }
 
-              start = (char *)xmlNodeGetContent(intervalNode->children);
-              stop = (char *)xmlNodeGetContent(intervalNode->children->next);
+              start = (char *)xmlNodeGetContent(startComponentNode);
+              stop = (char *)xmlNodeGetContent(endComponentNode);
               length = strlen(start) + strlen(stop) + 2;
               value = msSmallCalloc(length, sizeof(char));
 
@@ -1309,10 +1331,9 @@ static int msWCSParseRequest20_XMLGetCoverage(
         }
 
         else if (EQUAL((char *) extensionNode->name, "Interpolation")) {
-          xmlNodePtr globalInterpolation;
+          xmlNodePtr globalInterpolation = msLibXml2GetFirstChild(extensionNode, "globalInterpolation");
           char *content;
-          if ((globalInterpolation = extensionNode->children) == NULL
-              || !EQUAL((char *)globalInterpolation->name, "globalInterpolation")) {
+          if (globalInterpolation == NULL) {
             msSetError(MS_WCSERR, "Missing 'globalInterpolation' node.",
                                   "msWCSParseRequest20_XMLGetCoverage()");
             return MS_FAILURE;
@@ -3767,13 +3788,13 @@ static int msWCSGetCoverage20_GetBands(mapObj *map, layerObj *layer,
     return MS_SUCCESS;
   }
 
-  count = CSLCount(params->range_subset);
   maxlen = cm->numbands * 4 * sizeof(char);
   *bandlist = msSmallCalloc(sizeof(char), maxlen);
 
   /* Use WCS 2.0 metadata items in priority */
   tmp = msOWSGetEncodeMetadata(&layer->metadata,
-                                 "CO", "band_names", NULL);
+                               "CO", "band_names", NULL);
+
   if( NULL == tmp ) {
       /* Otherwise default to WCS 1.x*/
       tmp = msOWSGetEncodeMetadata(&layer->metadata,
@@ -3798,6 +3819,16 @@ static int msWCSGetCoverage20_GetBands(mapObj *map, layerObj *layer,
     msFree(tmp);
   }
 
+  /* If we still don't have band names, use the band names from the coverage metadata */
+  if (band_ids == NULL) {
+    band_ids = (char**) CPLCalloc(sizeof(char*), (cm->numbands + 1));
+    for (i = 0; i < cm->numbands; ++i) {
+      band_ids[i] = CPLStrdup(cm->bands[i].name);
+    }
+  }
+
+  /* Iterate over all supplied range */
+  count = CSLCount(params->range_subset);
   for(i = 0; i < count; ++i) {
     /* RangeInterval case: defined as "<start>:<stop>" */
     if ((interval_stop = strchr(params->range_subset[i], ':')) != NULL) {
@@ -4107,6 +4138,10 @@ int msWCSGetCoverage20(mapObj *map, cgiRequestObj *request,
   double x_1, x_2, y_1, y_2;
   char *coverageName, *bandlist=NULL, numbands[8];
 
+
+  int widthFromComputationInImageCRS = 0;
+  int heightFromComputationInImageCRS = 0;
+
   /* number of coverage ids should be 1 */
   if (params->ids == NULL || params->ids[0] == NULL) {
     msSetError(MS_WCSERR, "Required parameter CoverageID was not supplied.",
@@ -4268,6 +4303,42 @@ this request. Check wcs/ows_enable_request settings.", "msWCSGetCoverage20()", p
     }
 
     if(msProjectionsDiffer(&imageProj, &subsetProj)) {
+#ifdef USE_PROJ
+      /* Reprojection of source raster extent of (-180,-90,180,90) to any */
+      /* projected CRS is going to exhibit strong anomalies. So instead */
+      /* do the reverse, project the subset extent to the layer CRS, and */
+      /* see how much the subset extent takes with respect to the source */
+      /* raster extent. This is only used if output width and resolutionX (or */
+      /* (height and resolutionY) are unknown. */
+      if( ((params->width == 0 && params->resolutionX == MS_WCS20_UNBOUNDED) ||
+           (params->height == 0 && params->resolutionY == MS_WCS20_UNBOUNDED)) &&
+          (pj_is_latlong(imageProj.proj) &&
+           !pj_is_latlong(subsetProj.proj) &&
+           fabs(layer->extent.minx - -180.0) < 1e-5 &&
+           fabs(layer->extent.miny - -90.0) < 1e-5 &&
+           fabs(layer->extent.maxx - 180.0) < 1e-5 &&
+           fabs(layer->extent.maxy - 90.0) < 1e-5) )
+      {
+          rectObj subsetInImageProj = subsets;
+          if( msProjectRect(&subsetProj, &imageProj, &(subsetInImageProj)) == MS_SUCCESS )
+          {
+            subsetInImageProj.minx = MS_MAX(subsetInImageProj.minx, layer->extent.minx);
+            subsetInImageProj.miny = MS_MAX(subsetInImageProj.miny, layer->extent.miny);
+            subsetInImageProj.maxx = MS_MIN(subsetInImageProj.maxx, layer->extent.maxx);
+            subsetInImageProj.maxy = MS_MIN(subsetInImageProj.maxy, layer->extent.maxy);
+            {
+                double total = ABS(layer->extent.maxx - layer->extent.minx);
+                double part = ABS(subsetInImageProj.maxx - subsetInImageProj.minx);
+                widthFromComputationInImageCRS = MS_NINT((part * map->width) / total);
+            }
+            {
+                double total = ABS(layer->extent.maxy - layer->extent.miny);
+                double part = ABS(subsetInImageProj.maxy - subsetInImageProj.miny);
+                heightFromComputationInImageCRS = MS_NINT((part * map->height) / total);
+            }
+          }
+      }
+#endif
       msProjectRect(&imageProj, &subsetProj, &(layer->extent));
       map->extent = layer->extent;
       msFreeProjection(&(map->projection));
@@ -4318,7 +4389,9 @@ this request. Check wcs/ows_enable_request settings.", "msWCSGetCoverage20()", p
   } else if(params->resolutionX != MS_WCS20_UNBOUNDED) {
     params->width = MS_NINT((bbox.maxx - bbox.minx) / params->resolutionX);
   } else {
-    if(ABS(bbox.maxx - bbox.minx) != ABS(map->extent.maxx - map->extent.minx)) {
+    if( widthFromComputationInImageCRS != 0 ) {
+      params->width = widthFromComputationInImageCRS;
+    } else if(ABS(bbox.maxx - bbox.minx) != ABS(map->extent.maxx - map->extent.minx)) {
       double total = ABS(map->extent.maxx - map->extent.minx),
              part = ABS(bbox.maxx - bbox.minx);
       params->width = MS_NINT((part * map->width) / total);
@@ -4340,7 +4413,9 @@ this request. Check wcs/ows_enable_request settings.", "msWCSGetCoverage20()", p
   } else if(params->resolutionY != MS_WCS20_UNBOUNDED) {
     params->height = MS_NINT((bbox.maxy - bbox.miny) / params->resolutionY);
   } else {
-    if(ABS(bbox.maxy - bbox.miny) != ABS(map->extent.maxy - map->extent.miny)) {
+    if( heightFromComputationInImageCRS != 0 ) {
+      params->height = heightFromComputationInImageCRS;
+    } else if(ABS(bbox.maxy - bbox.miny) != ABS(map->extent.maxy - map->extent.miny)) {
       double total = ABS(map->extent.maxy - map->extent.miny),
              part = ABS(bbox.maxy - bbox.miny);
       params->height = MS_NINT((part * map->height) / total);
