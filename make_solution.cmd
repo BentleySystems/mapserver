@@ -5,7 +5,7 @@ Rem extract the prebuilt prerequisites, using cmake for this avoids additional i
 pushd "%BASE_DIR%"
 popd
 set ORACLE_HOME=%BASE_DIR%\instantclient_12_1\
-set PREREQ_DIR=%BASE_DIR%\release-1800-x64
+set PREREQ_DIR=%BASE_DIR%\release-1900-x64
 mkdir "%BASE_DIR%\build"
 pushd "%BASE_DIR%\build"
 
@@ -14,7 +14,7 @@ if NOT "%1" == "" (
    set CONFIGURATION=%1
 )
 
-cmake.exe -G "Visual Studio 12 2013 Win64" ^
+cmake.exe -G "Visual Studio 14 2015 Win64" ^
 -DCMAKE_PREFIX_PATH="%PREREQ_DIR%" ^
 -DREGEX_DIR="%BASE_DIR%\regex-0.12" ^
 -DSWIG_EXECUTABLE="%BASE_DIR%\SWIG-1.3.39\swig.exe" ^
