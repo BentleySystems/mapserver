@@ -38,6 +38,9 @@
 #include <Windows.h>
 #include <wincrypt.h>
 #define ENCODING_FLAG CRYPT_STRING_BASE64
+//DPAPI_NG Encryption
+#pragma comment(lib, "NCrypt.lib")
+#include <ncryptprotect.h>
 #endif
 
 
@@ -431,13 +434,13 @@ int msDecryptStringWithTEA( mapObj *map, const char *in, char *out )
 /**********************************************************************
 *                        msIsMapFileProctedByDPAPI()
 *
-* Returns TRUE if the encyption method in the MAP file is DPAPI
+* Returns TRUE if the encyption method in the MAP file is DPAPI or DPAPI_CERT
 *
 **********************************************************************/
 int msIsMapFileProctedByDPAPI( mapObj *map )
 {
    const char * encryptMethod = msGetConfigOption( map, "MS_ENCRYPTION_METHOD" );
-   if( encryptMethod != NULL && strcasecmp( encryptMethod, "DPAPI" ) == 0 )
+   if( encryptMethod != NULL && (strcasecmp( encryptMethod, "DPAPI" ) == 0 || strcasecmp( encryptMethod, "DPAPI_CERT" ) == 0) )
    {
       return MS_TRUE;
    }
@@ -461,7 +464,15 @@ int msDecryptString( mapObj *map, const char *in, char *out )
    if( msIsMapFileProctedByDPAPI( map ) == MS_TRUE )
    {
 #ifdef SUPPORT_DPAPI   
-      msDecryptStringWithDPAPI(in, out);
+      const char * encryptMethod = msGetConfigOption( map, "MS_ENCRYPTION_METHOD" );
+      if( encryptMethod != NULL && strcasecmp( encryptMethod, "DPAPI_CERT" ) == 0 )
+      {
+         return msDecryptStringWithDPAPING( in, out );
+      }
+      else
+      {
+         msDecryptStringWithDPAPI( in, out );
+      }
       return MS_SUCCESS;
 #else      
       msSetError(MS_MISCERR, "The map file was encrypted using DPAPI method, this version of mapserver does not support DPAPI.",
@@ -673,6 +684,199 @@ void msDecryptStringWithDPAPI( const char * in, char * out )
    *out = '\0';
 }
 
+/**********************************************************************
+*                        msEncryptStringWithDPAPING()
+*
+* Encrypts and base64-encodes the contents of string in[] using certificate and returns the
+* result in **out. Caller must free up the memory allocated by out.
+**********************************************************************/
+int msEncryptStringWithDPAPING( const char * thumbprint, const char *in, char ** out )
+{
+   DATA_BLOB DataEncrypted, DataUnencrypted;
+   BOOL result;
+   NCRYPT_DESCRIPTOR_HANDLE descriptorHandle = NULL;
+   char* descriptor;
+   const char * prefix = "CERTIFICATE=HashId:";
+
+   if( thumbprint == NULL )
+   {
+      msSetError( MS_MISCERR,
+         "Require certifcate thumbprint to encrypt the data. The certificate must be stored in the Current user stored",
+         "msEncryptStringWithDPAPING()" );
+      return MS_FAILURE;
+   }
+
+   //Set the protection descriptor string with the thumbprint;
+   descriptor = (char*)msSmallMalloc( sizeof( char ) * (strlen( thumbprint ) + strlen( prefix )) );
+   strcpy( descriptor, prefix );
+   strcat( descriptor, thumbprint );
+
+   //Convert the protection descriptor to wide string because NCryptCreateProtectionDescriptor takes wide string.
+   size_t wn = mbsrtowcs( NULL, &descriptor, 0, NULL );
+   wchar_t * pwdescriptor = (wchar_t *)msSmallMalloc( sizeof( wchar_t ) * strlen( descriptor ) );
+   wn = mbsrtowcs( pwdescriptor, &descriptor, wn + 1, NULL );
+
+   //Length of the resulting base64 String
+   DWORD encodedStringLength = 0;
+
+   DataUnencrypted.pbData = (byte *)in;
+   DataUnencrypted.cbData = (DWORD)strlen( in ) + 1;
+
+   NTSTATUS status = NCryptCreateProtectionDescriptor(
+      pwdescriptor,
+      0,
+      &descriptorHandle );
+
+   if( status != ERROR_SUCCESS ) {
+      msSetError( MS_MISCERR, "Unable to create Protection descriptor handle. NCryptCreateProtectionDescriptor returned error code %ld",
+         "msEncryptStringWithDPAPING()",
+         status );
+      goto cleanup;
+   }
+
+   status = NCryptProtectSecret(
+      descriptorHandle,
+      0,
+      DataUnencrypted.pbData,
+      DataUnencrypted.cbData,
+      NULL, // Use default allocations by LocalAlloc/LocalFree
+      NULL, // Use default parent windows handle. 
+      &DataEncrypted.pbData,  // out LocalFree
+      &DataEncrypted.cbData
+   );
+
+   if( status != ERROR_SUCCESS ) {
+      msSetError( MS_MISCERR, "Unable to encrypt data. NCryptProtectSecret returned error code %ld. Make sure certificate exists in the Current user store.",
+         "msEncryptStringWithDPAPING()",
+         status );
+      goto cleanup;
+   }
+
+   // Now create a base64 encoded string out of the binary data    
+   // the first call is to get the length of the resulting hex string
+   result = CryptBinaryToStringA(
+      DataEncrypted.pbData,
+      DataEncrypted.cbData,
+      ENCODING_FLAG | CRYPT_STRING_NOCRLF,
+      NULL,
+      &encodedStringLength );
+
+   //Allocate the buffer for encodedstring using encodedStringLength,
+   //which is number of characters, including the terminating NULL character
+   *out = msSmallMalloc( encodedStringLength );
+
+   //Now we allocated the buffer for encoded string, call it again to get the encoded string   
+   result = CryptBinaryToStringA(
+      DataEncrypted.pbData,
+      DataEncrypted.cbData,
+      ENCODING_FLAG | CRYPT_STRING_NOCRLF,
+      *out,
+      &encodedStringLength );
+
+cleanup:
+
+
+   if( DataEncrypted.pbData != NULL )
+   {
+      LocalFree( DataEncrypted.pbData );
+   }
+
+   if( descriptorHandle != NULL )
+   {
+      NCryptCloseProtectionDescriptor( descriptorHandle );
+   }
+
+   if( status != ERROR_SUCCESS )
+   {
+      return MS_FAILURE;
+   }
+   else
+   {
+      return MS_SUCCESS;
+}
+}
+
+/**********************************************************************
+*                        msDecryptStringWithDPAPING()
+*
+* Base64-decodes and then decrypts the contents of string in[] and returns the
+* result in out[] which should have been pre-allocated by the caller
+* to be at least half the size of in[].
+*
+**********************************************************************/
+int msDecryptStringWithDPAPING( const char * in, char * out )
+{
+   BOOL result;
+   DATA_BLOB DataEncrypted, DataUnencrypted;
+
+   //the input data is Base64 encoded
+   //first call is to get the length of the binary buffer for the encrpyted data
+   result = CryptStringToBinaryA(
+      in,
+      0,
+      ENCODING_FLAG,
+      NULL,
+      &DataEncrypted.cbData,
+      NULL,
+      NULL );
+
+   // Allocate the buffer for the encrpyted data
+   DataEncrypted.pbData = msSmallMalloc( DataEncrypted.cbData );
+
+   //Second call to decode the encrpted data
+   result = CryptStringToBinaryA(
+      in,
+      0,
+      ENCODING_FLAG,
+      DataEncrypted.pbData,
+      &DataEncrypted.cbData,
+      NULL,
+      NULL );
+
+
+   //Now we have decoded data, uprotect it
+   NTSTATUS status = NCryptUnprotectSecret(
+      NULL,       // Optional
+      0,          // no flags
+      DataEncrypted.pbData,  //ProtectedSecret,
+      DataEncrypted.cbData,  //ProtectedSecretLength,
+      NULL,        // Use default allocations by LocalAlloc/LocalFree
+      NULL,        // Use default parent windows handle. 
+      &DataUnencrypted.pbData,  // out LocalFree
+      &DataUnencrypted.cbData
+   );
+
+
+   //free the encrypted data buffer
+   msFree( DataEncrypted.pbData );
+
+   //copy the plain string to out
+   memcpy( out, DataUnencrypted.pbData, DataUnencrypted.cbData );
+
+   //free the unecrypted data buffer
+   LocalFree( DataUnencrypted.pbData );
+
+   if( status != ERROR_SUCCESS ) {
+      msSetError( MS_MISCERR, "Failed to decrypt the information in the mapfile. NCryptUnprotectSecret returned error code: %d."
+         " Make sure valid certificate is installed on mapserver machine and user has permission to access the private key.",
+         "msDecryptStringWithDPAPING()", status );
+
+      //Communicate this error to client
+      msCGIWriteError( NULL );
+
+      return MS_FAILURE;
+   }
+   else
+   {
+      msDebug( "Information decrypted successfully" );
+   }
+
+   /* Make sure output is 0-terminated */
+   out += DataUnencrypted.cbData;
+   *out = '\0';
+
+   return MS_SUCCESS;
+}
 #endif
 
 #ifdef TEST_MAPCRYPTO

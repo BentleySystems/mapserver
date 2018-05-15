@@ -2872,13 +2872,15 @@ void msPopulateTextSymbolForLabelAndString(textSymbolObj *ts, labelObj *l, char 
   int msDecryptStringWithTEA( mapObj *map, const char *in, char *out );
   int msDecryptString( mapObj *map, const char *in, char *out );
 #ifdef SUPPORT_DPAPI
-  /* =======================================================================  */
-  /* prototypes for mapcrypto.c encrypt/decrypt functions using DPAPI method  */
-  /* =======================================================================  */
+  /* ==================================================================================== */
+  /* prototypes for mapcrypto.c encrypt/decrypt functions using DPAPI and DPAPING method  */
+  /* ===================================================================================  */
   
   MS_DLL_EXPORT void msEncryptStringWithDPAPI( const char *in, char ** out );
   MS_DLL_EXPORT void msDecryptStringWithDPAPI( const char * in, char * out );    
-
+  //DPAPING
+  MS_DLL_EXPORT int msDecryptStringWithDPAPING( const char * in, char * out );
+  MS_DLL_EXPORT int msEncryptStringWithDPAPING( const char * thumbprint, const char *in, char ** out );
 #endif
 
   /* ==================================================================== */

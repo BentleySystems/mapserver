@@ -596,6 +596,7 @@ char *msGetVersion()
 /*Check if this compiled version support DPAPI method for encryption*/
 #ifdef SUPPORT_DPAPI
   strcat( version, " SUPPORTS=DPAPI_ENCRYPTION" );
+  strcat( version, " SUPPORTS=DPAPI_ENCRYPTION_CERT" );
 #endif
 #ifdef USE_V8_MAPSCRIPT
   strcat(version, " SUPPORTS=V8");
