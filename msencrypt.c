@@ -33,7 +33,7 @@
 
 void PrintUsage()
 {
-  printf("Usage: msencrypt <-keygen filename>|<-key filename string_to_encrypt>|<-DPAPI string_to_encrypt>\n");
+  printf("Usage: msencrypt <-keygen filename>|<-key filename string_to_encrypt>|<-DPAPI string_to_encrypt>|<-DPAPI certificate_thumprint_hashid string_to_encrypt>\n");
 }
 
 int main(int argc, char *argv[])
@@ -80,6 +80,17 @@ int main(int argc, char *argv[])
      msFree( pszBuf );
 #else
      printf( "This version of mapserver does not support DPAPI" );
+#endif
+
+  }
+  else if( argc == 4 && strcasecmp( argv[1], "-DPAPI" ) == 0 ) {
+#ifdef SUPPORT_DPAPI
+     char *pszBuf = NULL;
+     msEncryptStringWithDPAPING( argv[2], argv[3], &pszBuf );
+     printf( "%s\n", pszBuf );
+     msFree( pszBuf );
+#else
+     printf( "This version of mapserver does not support DPAPI NG" );
 #endif
 
   }
