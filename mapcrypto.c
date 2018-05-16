@@ -707,13 +707,13 @@ int msEncryptStringWithDPAPING( const char * thumbprint, const char *in, char **
    }
 
    //Set the protection descriptor string with the thumbprint;
-   descriptor = (char*)msSmallMalloc( sizeof( char ) * (strlen( thumbprint ) + strlen( prefix )) );
+   descriptor = (char*)msSmallMalloc( sizeof( char ) * (strlen( thumbprint ) + strlen( prefix ) + 1)  );
    strcpy( descriptor, prefix );
    strcat( descriptor, thumbprint );
 
    //Convert the protection descriptor to wide string because NCryptCreateProtectionDescriptor takes wide string.
    size_t wn = mbsrtowcs( NULL, &descriptor, 0, NULL );
-   wchar_t * pwdescriptor = (wchar_t *)msSmallMalloc( sizeof( wchar_t ) * strlen( descriptor ) );
+   wchar_t * pwdescriptor = (wchar_t *)msSmallMalloc( sizeof( wchar_t ) * (strlen( descriptor ) + 1));
    wn = mbsrtowcs( pwdescriptor, &descriptor, wn + 1, NULL );
 
    //Length of the resulting base64 String
@@ -785,6 +785,9 @@ cleanup:
    {
       NCryptCloseProtectionDescriptor( descriptorHandle );
    }
+
+   msFree( descriptor );
+   msFree( pwdescriptor );
 
    if( status != ERROR_SUCCESS )
    {
