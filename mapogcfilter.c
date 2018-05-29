@@ -1361,7 +1361,11 @@ void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
               psFilterNode->psRightNode->pszValue = msStrdup(pszLiteral);
               
               pszMatchCase = CPLGetXMLValue(psXMLNode, "matchCase", NULL);
-
+			  
+			  /*check if the matchCase is null or not if its null then set default value as false*/
+			  if (pszMatchCase == NULL)
+				  pszMatchCase = "false";
+			  
               /*check if the matchCase attribute is set*/
               if( pszMatchCase != NULL && strcasecmp( pszMatchCase, "false") == 0) {
                 (*(int *)psFilterNode->psRightNode->pOther) = 1;
