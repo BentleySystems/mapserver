@@ -2031,9 +2031,10 @@ static int msWFSRunFilter(mapObj* map,
                           int nWFSVersion)
 {
     int layerWasOpened;
+	const char *defaultMatchCase;
     FilterEncodingNode *psNode = NULL;
-
-    psNode = FLTParseFilterEncoding(pszFilter);
+	defaultMatchCase = msOWSLookupMetadata(&lp->metadata, "F", "default_matchcase");
+    psNode = FLTParseFilterEncoding(pszFilter, defaultMatchCase);
 
     if (!psNode) {
         msSetError(MS_WFSERR,
@@ -3319,7 +3320,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
   char** papszGMLGroups = NULL;
   char** papszGMLIncludeItems = NULL;
   char** papszGMLGeometries = NULL;
-  
+  char** papszWFSDefaultMatchCase = NULL;
   msIOContext* old_context = NULL;
 
   /* Initialize gml options */
@@ -3376,6 +3377,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
   papszGMLGroups = (char**) calloc(sizeof(char*), map->numlayers);
   papszGMLIncludeItems = (char**) calloc(sizeof(char*), map->numlayers);
   papszGMLGeometries = (char**) calloc(sizeof(char*), map->numlayers);
+  papszWFSDefaultMatchCase = (char**)calloc(sizeof(char*), map->numlayers);
 
   if(paramsObj->pszTypeName) {
     int k, y,z;
@@ -3851,6 +3853,8 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
             msInsertHashTable(&(lp->metadata), "GML_INCLUDE_ITEMS", papszGMLIncludeItems[i]);
         if( papszGMLGeometries[i] )
             msInsertHashTable(&(lp->metadata), "GML_GEOMETRIES", papszGMLGeometries[i]);
+		if (papszWFSDefaultMatchCase[i])
+			msInsertHashTable(&(lp->metadata), "wfs_default_matchcase", papszWFSDefaultMatchCase[i]);
       }
 
       /* For WFS 2.0, when we request several types, we must present each type */
@@ -4063,6 +4067,7 @@ int msWFSGetPropertyValue(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *r
   char* pszGMLGroups = NULL;
   char* pszGMLIncludeItems = NULL;
   char* pszGMLGeometries = NULL;
+  char* papszWFSDefaultMatchCase = NULL;
 
   status = msWFSResolveStoredQuery(map, paramsObj, req);
   if( status != MS_SUCCESS )
@@ -4308,6 +4313,8 @@ int msWFSGetPropertyValue(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *r
         msInsertHashTable(&(lp->metadata), "GML_INCLUDE_ITEMS", pszGMLIncludeItems);
       if( pszGMLGeometries )
         msInsertHashTable(&(lp->metadata), "GML_GEOMETRIES", pszGMLGeometries);
+	  if (papszWFSDefaultMatchCase)
+		  msInsertHashTable(&(lp->metadata), "wfs_default_matchcase", papszWFSDefaultMatchCase);
 
       status = msGMLWriteWFSQuery(map, stdout,
                                   gmlinfo.user_namespace_prefix,

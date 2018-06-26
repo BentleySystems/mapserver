@@ -2159,7 +2159,7 @@ this request. Check sos/ows_enable_request settings.", "msSOSGetObservation()", 
 
   /* apply filter */
   if (sosparams->pszResult) {
-    psFilterNode = FLTParseFilterEncoding(sosparams->pszResult);
+    psFilterNode = FLTParseFilterEncoding(sosparams->pszResult,NULL);
 
     if (!psFilterNode) {
       msSetError(MS_SOSERR, "Invalid or Unsupported RESULT in GetObservation: %s", "msSOSGetObservation()", sosparams->pszResult);

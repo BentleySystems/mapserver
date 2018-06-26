@@ -742,7 +742,7 @@ int FLTLayerApplyPlainFilterToLayer(FilterEncodingNode *psNode, mapObj *map,
 /*      Calling function should use FreeFilterEncodingNode function     */
 /*      to free memeory.                                                */
 /************************************************************************/
-FilterEncodingNode *FLTParseFilterEncoding(const char *szXMLString)
+FilterEncodingNode *FLTParseFilterEncoding(const char *szXMLString,const char *defaultMatchCase)
 {
   CPLXMLNode *psRoot = NULL, *psChild=NULL, *psFilter=NULL;
   FilterEncodingNode *psFilterNode = NULL;
@@ -773,7 +773,7 @@ FilterEncodingNode *FLTParseFilterEncoding(const char *szXMLString)
   while (psChild) {
     if (FLTIsSupportedFilterType(psChild)) {
       psFilterNode = FLTCreateFilterEncodingNode();
-      FLTInsertElementInNode(psFilterNode, psChild);
+      FLTInsertElementInNode(psFilterNode, psChild, defaultMatchCase);
       break;
     } else
       psChild = psChild->psNext;
@@ -1013,7 +1013,7 @@ static CPLXMLNode* FLTGetNextSibblingNode(CPLXMLNode* psXMLNode)
 /*      contennts into the Filer Encoding node structure.               */
 /************************************************************************/
 void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
-                            CPLXMLNode *psXMLNode)
+                            CPLXMLNode *psXMLNode, char *defaultMatchCase)
 {
   int nStrLength = 0;
   char *pszTmp = NULL;
@@ -1056,9 +1056,9 @@ void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
           CPLXMLNode* psNextNode = FLTGetNextSibblingNode(psSecondNode);
           if (psNextNode == NULL) {
             psFilterNode->psLeftNode = FLTCreateFilterEncodingNode();
-            FLTInsertElementInNode(psFilterNode->psLeftNode, psFirstNode);
+            FLTInsertElementInNode(psFilterNode->psLeftNode, psFirstNode, defaultMatchCase);
             psFilterNode->psRightNode = FLTCreateFilterEncodingNode();
-            FLTInsertElementInNode(psFilterNode->psRightNode, psSecondNode);
+            FLTInsertElementInNode(psFilterNode->psRightNode, psSecondNode, defaultMatchCase);
           } else {
             psCurXMLNode = psFirstNode;
             psCurFilNode = psFilterNode;
@@ -1066,7 +1066,7 @@ void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
               psNextNode = FLTGetNextSibblingNode(psCurXMLNode);
               if (FLTGetNextSibblingNode(psNextNode)) {
                 psCurFilNode->psLeftNode = FLTCreateFilterEncodingNode();
-                FLTInsertElementInNode(psCurFilNode->psLeftNode, psCurXMLNode);
+                FLTInsertElementInNode(psCurFilNode->psLeftNode, psCurXMLNode, defaultMatchCase);
                 psCurFilNode->psRightNode = FLTCreateFilterEncodingNode();
                 psCurFilNode->psRightNode->eType = FILTER_NODE_TYPE_LOGICAL;
                 psCurFilNode->psRightNode->pszValue = msStrdup(psFilterNode->pszValue);
@@ -1075,10 +1075,10 @@ void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
                 psCurXMLNode = psNextNode;
               } else { /*last 2 operators*/
                 psCurFilNode->psLeftNode = FLTCreateFilterEncodingNode();
-                FLTInsertElementInNode(psCurFilNode->psLeftNode, psCurXMLNode);
+                FLTInsertElementInNode(psCurFilNode->psLeftNode, psCurXMLNode, defaultMatchCase);
 
                 psCurFilNode->psRightNode = FLTCreateFilterEncodingNode();
-                FLTInsertElementInNode(psCurFilNode->psRightNode, psNextNode);
+                FLTInsertElementInNode(psCurFilNode->psRightNode, psNextNode, defaultMatchCase);
                 break;
               }
             }
@@ -1091,7 +1091,7 @@ void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
         if (psFirstNode) {
           psFilterNode->psLeftNode = FLTCreateFilterEncodingNode();
           FLTInsertElementInNode(psFilterNode->psLeftNode,
-                                 psFirstNode);
+                                 psFirstNode, defaultMatchCase);
         }
         else
           psFilterNode->eType = FILTER_NODE_TYPE_UNDEFINED;
@@ -1355,6 +1355,7 @@ void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
             psFilterNode->psRightNode = FLTCreateBinaryCompFilterEncodingNode();
             psFilterNode->psRightNode->eType = FILTER_NODE_TYPE_LITERAL;
 
+			//msOWSLookupMetadata(&lp->metadata, "O", "enable_request");
             if (pszLiteral != NULL) {
               const char* pszMatchCase;
 
@@ -1362,6 +1363,10 @@ void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
               
               pszMatchCase = CPLGetXMLValue(psXMLNode, "matchCase", NULL);
 
+			  if (pszMatchCase == NULL)
+			  {
+				  pszMatchCase = defaultMatchCase;
+			  }
               /*check if the matchCase attribute is set*/
               if( pszMatchCase != NULL && strcasecmp( pszMatchCase, "false") == 0) {
                 (*(int *)psFilterNode->psRightNode->pOther) = 1;
@@ -1473,6 +1478,12 @@ void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
           propIsLike->pszEscapeChar = msStrdup(pszEscapeChar);
 
           pszTmp = (char *)CPLGetXMLValue(psXMLNode, "matchCase", NULL);
+
+		  if (pszTmp == NULL)
+		  {
+			  pszTmp = defaultMatchCase;
+		  }
+
           if (pszTmp && strcasecmp(pszTmp, "false") == 0) {
             propIsLike->bCaseInsensitive =1;
           }
