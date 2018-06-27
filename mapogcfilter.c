@@ -733,9 +733,9 @@ int FLTLayerApplyPlainFilterToLayer(FilterEncodingNode *psNode, mapObj *map,
 
 
 /************************************************************************/
-/*            FilterNode *FLTPaserFilterEncoding(char *szXMLString)     */
+/*            FilterNode *FLTPaserFilterEncoding(char *szXMLString, const char *defaultMatchCase)     */
 /*                                                                      */
-/*      Parses an Filter Encoding XML string and creates a              */
+/*      Parses an Filter Encoding XML string and default match case for layer then creates a          */
 /*      FilterEncodingNodes corresponding to the string.                */
 /*      Returns a pointer to the first node or NULL if                  */
 /*      unsuccessfull.                                                  */
@@ -1479,8 +1479,7 @@ void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
 
           pszTmp = (char *)CPLGetXMLValue(psXMLNode, "matchCase", NULL);
 
-		  if (pszTmp == NULL)
-		  {
+		  if (pszTmp == NULL) {
 			  pszTmp = defaultMatchCase;
 		  }
 

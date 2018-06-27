@@ -3424,6 +3424,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
         msFreeCharArray(papszGMLGroups, map->numlayers);
         msFreeCharArray(papszGMLIncludeItems, map->numlayers);
         msFreeCharArray(papszGMLGeometries, map->numlayers);
+		msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
         msSetError(MS_WFSERR,
                     "Optional PROPERTYNAME parameter. A list of properties may be specified for each type name. Example TYPENAME=name1,name2&PROPERTYNAME=(prop1,prop2)(prop1)",
                     "msWFSGetFeature()");
@@ -3437,6 +3438,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
         msFreeCharArray(papszGMLGroups, map->numlayers);
         msFreeCharArray(papszGMLIncludeItems, map->numlayers);
         msFreeCharArray(papszGMLGeometries, map->numlayers);
+		msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
         msSetError(MS_WFSERR,
                     "Optional SORTBY parameter. A list may be specified for each type name. Example TYPENAME=name1,name2&SORTBY=(prop1,prop2)(prop1)",
                     "msWFSGetFeature()");
@@ -3476,6 +3478,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
                     msFreeCharArray(papszGMLGroups, map->numlayers);
                     msFreeCharArray(papszGMLIncludeItems, map->numlayers);
                     msFreeCharArray(papszGMLGeometries, map->numlayers);
+					msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
                     msGMLFreeItems(itemList);
                     msGMLFreeGroups(groupList);
                     return status;
@@ -3522,6 +3525,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
                     msFreeCharArray(papszGMLGroups, map->numlayers);
                     msFreeCharArray(papszGMLIncludeItems, map->numlayers);
                     msFreeCharArray(papszGMLGeometries, map->numlayers);
+					msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
                     return msWFSException(map, "PROPERTYNAME", MS_OWS_ERROR_INVALID_PARAMETER_VALUE, paramsObj->pszVersion);
                   }
                 }
@@ -3672,6 +3676,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
                 msFreeCharArray(papszGMLGroups, map->numlayers);
                 msFreeCharArray(papszGMLIncludeItems, map->numlayers);
                 msFreeCharArray(papszGMLGeometries, map->numlayers);
+				msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
                 msGMLFreeItems(itemList);
                 msGMLFreeGroups(groupList);
                 msGMLFreeGeometries(geometryList);
@@ -3696,6 +3701,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
         msFreeCharArray(papszGMLGroups, map->numlayers);
         msFreeCharArray(papszGMLIncludeItems, map->numlayers);
         msFreeCharArray(papszGMLGeometries, map->numlayers);
+		msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
         return msWFSException(map, "typename", MS_OWS_ERROR_INVALID_PARAMETER_VALUE, paramsObj->pszVersion);
       }
     }
@@ -3713,6 +3719,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
       msFreeCharArray(papszGMLGroups, map->numlayers);
       msFreeCharArray(papszGMLIncludeItems, map->numlayers);
       msFreeCharArray(papszGMLGeometries, map->numlayers);
+	  msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
       return msWFSException(map, "outputformat",
                             MS_OWS_ERROR_INVALID_PARAMETER_VALUE,
                             paramsObj->pszVersion );
@@ -3732,6 +3739,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
       msFreeCharArray(papszGMLGroups, map->numlayers);
       msFreeCharArray(papszGMLIncludeItems, map->numlayers);
       msFreeCharArray(papszGMLGeometries, map->numlayers);
+	  msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
       return status;
   }
 
@@ -3763,6 +3771,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
       msFreeCharArray(papszGMLGroups, map->numlayers);
       msFreeCharArray(papszGMLIncludeItems, map->numlayers);
       msFreeCharArray(papszGMLGeometries, map->numlayers);
+	  msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
       return status;
   }
 
@@ -3823,6 +3832,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
       msFreeCharArray(papszGMLGroups, map->numlayers);
       msFreeCharArray(papszGMLIncludeItems, map->numlayers);
       msFreeCharArray(papszGMLGeometries, map->numlayers);
+	  msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
       return MS_FAILURE;
     }
   }
@@ -3959,6 +3969,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
       msFreeCharArray(papszGMLGroups, map->numlayers);
       msFreeCharArray(papszGMLIncludeItems, map->numlayers);
       msFreeCharArray(papszGMLGeometries, map->numlayers);
+	  msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
       return msWFSException(map, "mapserv", MS_OWS_ERROR_NO_APPLICABLE_CODE,
                             paramsObj->pszVersion );
     }
@@ -3967,6 +3978,7 @@ int msWFSGetFeature(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *req,
   msFreeCharArray(papszGMLGroups, map->numlayers);
   msFreeCharArray(papszGMLIncludeItems, map->numlayers);
   msFreeCharArray(papszGMLGeometries, map->numlayers);
+  msFreeCharArray(papszWFSDefaultMatchCase, map->numlayers);
 
   if( psFormat == NULL && status == MS_SUCCESS ) {
     msWFSGetFeature_GMLPostfix( map, req, &gmlinfo, paramsObj,
@@ -4067,7 +4079,7 @@ int msWFSGetPropertyValue(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *r
   char* pszGMLGroups = NULL;
   char* pszGMLIncludeItems = NULL;
   char* pszGMLGeometries = NULL;
-  char* papszWFSDefaultMatchCase = NULL;
+  char* pszWFSDefaultMatchCase = NULL;
 
   status = msWFSResolveStoredQuery(map, paramsObj, req);
   if( status != MS_SUCCESS )
@@ -4202,6 +4214,7 @@ int msWFSGetPropertyValue(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *r
         msFree(pszGMLGroups);
         msFree(pszGMLIncludeItems);
         msFree(pszGMLGeometries);
+		msFree(pszWFSDefaultMatchCase);
         return msWFSException(map, "typename", MS_OWS_ERROR_INVALID_PARAMETER_VALUE, paramsObj->pszVersion);
   }
 
@@ -4225,6 +4238,7 @@ int msWFSGetPropertyValue(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *r
     msFree(pszGMLGroups);
     msFree(pszGMLIncludeItems);
     msFree(pszGMLGeometries);
+	msFree(pszWFSDefaultMatchCase);
     return msWFSException(map, "outputformat",
                         MS_OWS_ERROR_INVALID_PARAMETER_VALUE,
                         paramsObj->pszVersion );
@@ -4241,6 +4255,7 @@ int msWFSGetPropertyValue(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *r
       msFree(pszGMLGroups);
       msFree(pszGMLIncludeItems);
       msFree(pszGMLGeometries);
+	  msFree(pszWFSDefaultMatchCase);
       return status;
       }
 
@@ -4270,6 +4285,7 @@ int msWFSGetPropertyValue(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *r
       msFree(pszGMLGroups);
       msFree(pszGMLIncludeItems);
       msFree(pszGMLGeometries);
+	  msFree(pszWFSDefaultMatchCase);
       return status;
   }
 
@@ -4313,8 +4329,8 @@ int msWFSGetPropertyValue(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *r
         msInsertHashTable(&(lp->metadata), "GML_INCLUDE_ITEMS", pszGMLIncludeItems);
       if( pszGMLGeometries )
         msInsertHashTable(&(lp->metadata), "GML_GEOMETRIES", pszGMLGeometries);
-	  if (papszWFSDefaultMatchCase)
-		  msInsertHashTable(&(lp->metadata), "wfs_default_matchcase", papszWFSDefaultMatchCase);
+	  if (pszWFSDefaultMatchCase)
+		  msInsertHashTable(&(lp->metadata), "wfs_default_matchcase", pszWFSDefaultMatchCase);
 
       status = msGMLWriteWFSQuery(map, stdout,
                                   gmlinfo.user_namespace_prefix,
@@ -4329,6 +4345,7 @@ int msWFSGetPropertyValue(mapObj *map, wfsParamsObj *paramsObj, cgiRequestObj *r
   msFree(pszGMLGroups);
   msFree(pszGMLIncludeItems);
   msFree(pszGMLGeometries);
+  msFree(pszWFSDefaultMatchCase);
 
   free(gmlinfo.script_url);
   free(gmlinfo.script_url_encoded);
