@@ -1363,10 +1363,9 @@ void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
               
               pszMatchCase = CPLGetXMLValue(psXMLNode, "matchCase", NULL);
 
-			  if (pszMatchCase == NULL)
-			  {
-				  pszMatchCase = defaultMatchCase;
-			  }
+	      if (pszMatchCase == NULL) {
+	         pszMatchCase = defaultMatchCase;
+              }
               /*check if the matchCase attribute is set*/
               if( pszMatchCase != NULL && strcasecmp( pszMatchCase, "false") == 0) {
                 (*(int *)psFilterNode->psRightNode->pOther) = 1;
@@ -1479,9 +1478,9 @@ void FLTInsertElementInNode(FilterEncodingNode *psFilterNode,
 
           pszTmp = (char *)CPLGetXMLValue(psXMLNode, "matchCase", NULL);
 
-		  if (pszTmp == NULL) {
-			  pszTmp = defaultMatchCase;
-		  }
+          if (pszTmp == NULL) {
+            pszTmp = defaultMatchCase;
+          }
 
           if (pszTmp && strcasecmp(pszTmp, "false") == 0) {
             propIsLike->bCaseInsensitive =1;
