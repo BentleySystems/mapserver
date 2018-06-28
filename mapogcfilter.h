@@ -58,7 +58,7 @@ typedef struct {
 /* -------------------------------------------------------------------- */
 /*      prototypes.                                                     */
 /* -------------------------------------------------------------------- */
-MS_DLL_EXPORT FilterEncodingNode *FLTParseFilterEncoding(const char *szXMLString);
+MS_DLL_EXPORT FilterEncodingNode *FLTParseFilterEncoding(const char *szXMLString,const char *defaultMatchCase);
 MS_DLL_EXPORT FilterEncodingNode *FLTCreateFilterEncodingNode(void);
 MS_DLL_EXPORT int FLTApplyFilterToLayer(FilterEncodingNode *psNode, mapObj *map,
                                         int iLayerIndex);

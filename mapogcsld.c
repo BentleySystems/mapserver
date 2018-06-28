@@ -778,7 +778,7 @@ static char* msSLDGetCommonExpressionFromFilter(CPLXMLNode* psFilter,
     CPLDestroyXMLNode(psTmpNode);
 
     if (pszTmpFilter) {
-        psNode = FLTParseFilterEncoding(pszTmpFilter);
+        psNode = FLTParseFilterEncoding(pszTmpFilter, NULL);
 
         CPLFree(pszTmpFilter);
     }
